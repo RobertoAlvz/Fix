@@ -1,0 +1,13 @@
+fix filter:(Num=>1+1)=>[Num]=>[Num]
+    ->f:Num=>1+1
+        ->l:[Num]
+            ->( (x:[Num]->x)|(x:[Num]->x)
+                l=[]?(
+                    [],
+                    (x:[Num]->x)|(x:[Num]->x)
+                    (f @l)?(
+                        [@l]#(filter f ~l),
+                        filter f ~l
+                    )
+                )
+            )

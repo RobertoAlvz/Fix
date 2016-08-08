@@ -1,0 +1,9 @@
+fix fac:Num=>Num
+        ->n:Num
+            ->( (x:Num->x)|(x:Num->x)
+                n=0?(
+                    1,
+                    n*(fac n-1)
+                )
+            )
+

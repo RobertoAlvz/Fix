@@ -1,0 +1,10 @@
+fix fold:(Num=>Num=>Num)=>Num=>[Num]=>Num
+    ->f:Num=>Num=>Num
+        ->a:Num
+            ->l:[Num]
+                ->( (x:Num->x)|(x:Num->x)
+                    l=[]?(
+                        a,
+                        fold f (f a @l) ~l
+                    )
+                )

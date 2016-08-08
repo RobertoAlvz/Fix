@@ -1,0 +1,10 @@
+fix map:(Num=>Num)=>[Num]=>[Num]
+    ->f:Num=>Num
+        ->l:[Num]
+            ->( (x:[Num]->x)|(x:[Num]->x)
+                l=[]?(
+                    [],
+                    [f @l]#(map f ~l)
+                )
+            )
+

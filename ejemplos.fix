@@ -1,0 +1,21 @@
+{
+fix fac:Num=>Num
+        ->n:Num
+            ->( (x:Num->x)|(x:Num->x) n=0? (1,
+                                                n*(fac n-1)
+                                            )
+              )
+}
+fix fib:Num=>Num
+        ->n:Num
+            ->( (x:Num->x)|(x:Num->x)
+                n=0?(
+                    1,
+                    (x:Num->x)|(x:Num->x)
+                    n=1?(
+                        1,
+                        (fib n-1)+(fib n-2)
+                    )
+                )
+              )
+
