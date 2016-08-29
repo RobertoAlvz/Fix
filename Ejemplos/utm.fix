@@ -1,0 +1,64 @@
+update:[Num]=>Num=>Num=>[Num]->
+find:[Num*Num*(1+1)*Num*Num]=>Num=>Num=>(1+1)*Num*Num->
+get:[Num]=>Num=>Num->
+(fix sim:[Num*Num*(1+1)*Num*Num]=>Num=>Num=>[Num]=>Num
+    ->tm:[Num*Num*(1+1)*Num*Num]
+        ->q0:Num
+            ->pos:Num
+                ->cinta:[Num]
+                    ->( (x:Num->x)|(x:Num->x)
+                        (q0 < 1) ?(
+                            q0,
+                            (   x:(1+1)*Num*Num->(sim tm (x_2) ((x:Num->x)|(x:Num->x) (x_1)?(pos-1,pos+1)) (update cinta pos (x_3)))
+                                (find tm q0 (get cinta pos))
+                            )
+                        )
+                    )
+)
+
+(fix update:[Num]=>Num=>Num=>[Num]
+    ->l:[Num]
+        ->pos:Num
+            ->val:Num
+                ->( (x:[Num]->x)|(x:[Num]->x)
+                    l=[]?(
+                        [],
+                        (x:[Num]->x)|(x:[Num]->x)
+                        pos=0?(
+                            [val]#~l,
+                            update l (pos-1) val
+                        )
+                    )
+                )
+)
+
+(fix find:[Num*Num*(1+1)*Num*Num]=>Num=>Num=>(1+1)*Num*Num
+    ->tm:[Num*Num*(1+1)*Num*Num]
+        ->q:Num
+            ->s:Num
+                ->( (x:[(1+1)*Num*Num]-> @x)|(x:[(1+1)*Num*Num]-> @x)
+                    tm=[]?(
+                        [((<| () ), 0-1, 0)],
+                        [(x:[(1+1)*Num*Num]-> @x)|(x:[(1+1)*Num*Num]-> @x)
+                        ((@tm_1)=q) && ((@tm_2)=s) ? (
+                            [((@tm)_3,(@tm)_4,(@tm)_5)],
+                            [find ~tm q s]
+                        )]
+                    )
+                )
+)
+
+(fix get:[Num]=>Num=>Num
+    ->l:[Num]
+        ->i:Num
+            ->( (x:Num->x)|(x:Num->x)
+                l=[]?(
+                    0,
+                    (x:Num->x)|(x:Num->x)
+                    i<1?(
+                        (@l),
+                        get ~l (i-1)
+                    )
+                )
+            )
+)
