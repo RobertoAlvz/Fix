@@ -4,7 +4,6 @@ fix map:(Num=>Num)=>[Num]=>[Num]
             ->( (x:[Num]->x)|(x:[Num]->x)
                 l=[]?(
                     [],
-                    [f @l]#(map f ~l)
+                    [f @l] \ ( map f ~l)
                 )
             )
-

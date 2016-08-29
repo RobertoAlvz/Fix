@@ -1,4 +1,4 @@
-module Parser (Type(..), Tree(..), Op(..), parse, program)where
+module Parser (Type(..), Tree(..), Op(..), parse, program) where
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -20,14 +20,14 @@ instance Show Type where
     show (TExp a b) = (show a)++"=>"++(show b)
 
 fixLangDef = LanguageDef { 
-    commentStart = "{*",
-    commentEnd = "*}",
-    commentLine = "//",
+    commentStart = "$",
+    commentEnd = "$",
+    commentLine = "$$",
     nestedComments = True,
     identStart = letter,
     identLetter = alphaNum,
     opStart = opLetter fixLangDef,
-    opLetter = oneOf ";:!&*+./<=>?@^|-~_",
+    opLetter = oneOf ";:!&*+./<=>?@^#|-~_",
     reservedOpNames = ["->","=>",":"],
     reservedNames = ["fix"],
     caseSensitive = True
@@ -46,7 +46,7 @@ reservedOp = P.reservedOp lexer
 program = do
     P.whiteSpace lexer
     p <- apps
-    eof
+--    eof
     return p
 
 apps = do
@@ -59,7 +59,7 @@ term :: Parser Tree
 term =  do {n <- number; return (Num n)}
     <|> do {id <- identifier; return (Id id)}
     <|> try (do {symbol "("; t <- apps; symbol ")"; return t})
-    <|> try (do {symbol "{"; t <- apps; symbol "}"; return t})
+    <|> try (do {symbol "{"; many1 (alphaNum <|> char '/'); symbol "."; many1 alphaNum; symbol "}"; return Init})
     <|> do {symbol "("; t <- sepBy apps comma; symbol ")"; return $ foldr Prd Init t}
     <|> do {symbol "["; t <- sepBy apps comma; symbol "]"; return $ Lst t}
     <?> "term"

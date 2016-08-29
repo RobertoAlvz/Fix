@@ -4,7 +4,7 @@ import Parser
 import Data.List
 import Data.IORef
 
-data Value = V1 | VNum (Either Integer Double) | VList [Value] | VProd Value Value | VSum (Either Value Value) | VFunction (Thunk -> IO Value)
+data Value = V1 | VNum (Either Integer Double) | VList [Value] | VProd Value Value | VSum (Either Value Value) | VFunction (RefVal -> IO Value)
 
 instance Show Value where
     show V1 = "*"
@@ -24,35 +24,37 @@ instance Ord Value where
     compare V1 V1 = EQ
     compare (VNum a) (VNum b) = compare (fromNum a) (fromNum b)
     compare (VList a) (VList b) = if length a /= length b
-        then compare (length a) (length b)
+        then case compare (VList $ zipWith (\x y -> x) a b) (VList $ zipWith (\x y -> y) a b) of
+            EQ -> compare (length a) (length b)
+            r  -> r
         else let aux = dropWhile (==EQ) $ zipWith compare a b in if null aux then EQ else head aux
     compare (VProd a1 a2) (VProd b1 b2) = compare (compare a1 b1) (compare a2 b2)
     compare (VSum (Left a)) (VSum (Left b)) = compare a b
     compare (VSum (Right a)) (VSum (Left b)) = compare a b
     compare (VSum a) (VSum b) = compare b a
+    compare _ _ = LT
 
-type Env = [(String, IORef Thunk)]
+type Env = [(String, IORef RefVal)]
 
-type Thunk = () -> IO Value
+type RefVal = () -> IO Value
 
-lookupEnv :: Env -> String -> IO (IORef Thunk)
+lookupEnv :: Env -> String -> IO (IORef RefVal)
 lookupEnv [] y = error $ "Unbound Variable " ++ y
-lookupEnv ((x, v) : xs) n = if x == n then return v
-                                      else lookupEnv xs n
+lookupEnv ((x, v) : xs) n = if x == n then return v else lookupEnv xs n
 
-force :: IORef Thunk -> IO Value
+force :: IORef RefVal -> IO Value
 force ref = do
     th <- readIORef ref
     v <- th ()
     update ref v
     return v
 
-mkThunk :: Env -> String -> Tree -> (Thunk -> IO Value)
-mkThunk env x body = \a -> do
+mkRefVal :: Env -> String -> Tree -> (RefVal -> IO Value)
+mkRefVal env x body = \a -> do
     a' <- newIORef a
     eval ((x, a') : env) body
 
-update :: IORef Thunk -> Value -> IO ()
+update :: IORef RefVal -> Value -> IO ()
 update ref v = do
     writeIORef ref (\() -> return v)
     return ()
@@ -60,8 +62,8 @@ update ref v = do
 eval :: Env -> Tree -> IO Value
 eval env ex = case ex of
     Init            -> return V1
-    Id s            -> do th <- lookupEnv env s
-                          v <- force th
+    Id s            -> do rv <- lookupEnv env s
+                          v <- force rv
                           return v
     Num n           -> return $ VNum n
     Lst ls          -> do {l <- sequence $ map (eval env) ls; return $ VList l }
@@ -86,7 +88,7 @@ eval env ex = case ex of
                                
     Exp Proy p i    -> do f1 <- eval env i
                           case f1 of
-                               VNum n -> if (fromNum n)<=0 then error "Negative Proyection" else eval env $ getProy p n
+                               VNum n -> if (fromNum n)<=0 then error "Negative Proyection" else getProy env p (truncate $ fromNum n)
                                _      -> error "Non Numeric Proyection"
                                
     Exp Comp f g    -> do f1 <- eval env f
@@ -178,14 +180,15 @@ eval env ex = case ex of
                                _ ->  error "Non Logic conjunction"
     Exp Not a b     -> do a1 <- eval env a
                           case a1 of 
-                               VSum x -> return $ VSum $ if isLeft x then Right V1 else Left V1
+                               VSum (Left x) -> return $ VSum $ Right x
+                               VSum (Right x) -> return $ VSum $ Left x
                                _ ->  error "Non Logic negation"
     Exp Test a b    -> do a1 <- eval env a
                           case a1 of 
-                               VSum (Left x) -> do {b1 <- eval env $ getProy b (Left 1); return $ VSum $ Left b1}
-                               VSum (Right x)-> do {b1 <- eval env $ getProy b (Left 2); return $ VSum $ Right b1}
+                               VSum (Left x) -> do {b1 <- getProy env b 1; return $ VSum $ Left b1}
+                               VSum (Right x)-> do {b1 <- getProy env b 2; return $ VSum $ Right b1}
                                _ ->  error "Non Logic test"
-    Abs x _ e       -> return $ VFunction $ mkThunk env x e
+    Abs x _ e       -> return $ VFunction $ mkRefVal env x e
     App f g         -> do f1 <- eval env f
                           case f1 of
                                VFunction aux -> aux (\()-> eval env g)
@@ -201,8 +204,16 @@ fromNum (Right n) = n
 mod1 :: Double->Double->Double
 mod1 a b = a - (fromIntegral.floor $ a/b)*b
 
-getProy :: Tree -> Either Integer Double -> Tree
-getProy (Prd a b) (Left i) = if i==1 then a else getProy b (Left $ i-1)
-getProy b (Left 1) = b
-getProy _ _ = Init
-gerProy t (Right d) = getProy t (Left $ truncate d)
+getProy :: Env -> Tree -> Integer -> IO Value
+getProy env (Prd x _) 1 = eval env x
+getProy env (Prd _ x) i = getProy env x (i-1)
+getProy env (Id s) i = do
+    iorv <- lookupEnv env s
+    rv <- readIORef iorv
+    v <- rv ()
+    return $ getPV v i
+getProy _ _ _ = return V1 
+
+getPV (VProd x _) 1 = x
+getPV (VProd _ x) i = getPV x (i-1)
+getPV x _ = x

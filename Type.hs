@@ -72,8 +72,8 @@ check expr = case expr of
                       case fromEitherType $ checkTop env p of
                         TProd t s -> case fromEitherType $ checkTop env i of
                                         TNum -> let Num n = i
-                                                    aux1 = fix (\f t i -> if i<=0 then T0 else case t of
-                                                        {TProd a b -> if i==1 then a else f b (i-1); c -> if i==1 then c else T0})
+                                                    aux1 = fix (\f t i -> if i<=0 then T1 else case t of
+                                                        {TProd a b -> if i==1 then a else f b (i-1); c -> if i==1 then c else T1})
                                                 in case n of
                                                     Left m -> return $ aux1 (TProd t s) $ fromInteger m
                                                     _      -> throwError $ ProyectionError
