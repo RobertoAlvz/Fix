@@ -1,4 +1,0 @@
-map:(Num=>Num=>Num)=>[Num]=>[Num]
-    ->l:[Num]
-        ->( map (x:Num->y:Num->x+y) l)
-({map.fix})
